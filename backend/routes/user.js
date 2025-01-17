@@ -5,6 +5,8 @@ const bcrypt = require("bcryptjs");
 const { User } = require("../db");
 const salt = bcrypt.genSaltSync(10);
 const jwt = require("jsonwebtoken");
+const { authMiddleware } = require("../middleware");
+const { default: mongoose } = require("mongoose");
 const JWT_SECRET = "jwtsecret"
 const registerSchema = z.object({
     username: z.string().email(),
@@ -87,9 +89,50 @@ router.post('/login', async (req,res)=>{
             msg : "Error"
         })
     }
-    
-
 
 })
+
+const updateSchema = z.object({
+    password: z.string(),
+    firstName: z.string(),
+    lastName: z.string()
+})
+router.put('/update',authMiddleware, async (req,res)=>{
+    const {password,firstName,lastName} = req.body;
+    if(!password || !firstName || !lastName){
+        return res.status(400).json({
+            msg : "All fields are required"
+        })
+    }
+    try {
+        const hashedPassword = bcrypt.hashSync(password, salt);
+
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: req.userId },
+            { password: hashedPassword, firstName, lastName },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                msg: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            msg: "User updated successfully",
+            user: updatedUser
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            msg: "Internal server error",
+            error: err.message
+        });
+    }
+
+})
+
+
 
 module.exports = router;
