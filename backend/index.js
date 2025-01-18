@@ -8,8 +8,8 @@ const z = require("zod");
 const cors = require('cors'); 
 app.use(cors());
 
-const mainRouter = require("./routes/user");
-app.use("/user",mainRouter);
+const mainRouter = require("./routes/index");
+app.use("/api/v1",mainRouter);
 app.listen(4000, () => {
     console.log("Server is running on port 4000");
 });

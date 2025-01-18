@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const z = require("zod");
 const bcrypt = require("bcryptjs");
-const { User } = require("../db");
+const { User, Account } = require("../db");
 const salt = bcrypt.genSaltSync(10);
 const jwt = require("jsonwebtoken");
 const { authMiddleware } = require("../middleware");
@@ -38,6 +38,11 @@ router.post('/register', async (req, res) => {
                 lastName,
                 password: bcrypt.hashSync(password, salt),
             });
+            const userId = newUser._id;
+            await Account.create({
+                userId,
+                balance: 1+Math.random()*10000
+            })
             return res.status(200).json({
                 msg: "User created",
                 user : newUser
@@ -93,46 +98,81 @@ router.post('/login', async (req,res)=>{
 })
 
 const updateSchema = z.object({
-    password: z.string(),
-    firstName: z.string(),
-    lastName: z.string()
+    password: z.string().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional()
 })
-router.put('/update',authMiddleware, async (req,res)=>{
-    const {password,firstName,lastName} = req.body;
-    if(!password || !firstName || !lastName){
-        return res.status(400).json({
-            msg : "All fields are required"
-        })
-    }
-    try {
-        const hashedPassword = bcrypt.hashSync(password, salt);
+router.put('/update', authMiddleware, async (req, res) => {
+    const { password, firstName, lastName } = req.body;
 
+    try {
+        // Prepare the update object
+        const updateFields = {};
+        if (password) {
+            updateFields.password = bcrypt.hashSync(password, salt);
+        }
+        if (firstName) {
+            updateFields.firstName = firstName;
+        }
+        if (lastName) {
+            updateFields.lastName = lastName;
+        }
+
+        // Update user only with provided fields
         const updatedUser = await User.findOneAndUpdate(
             { _id: req.userId },
-            { password: hashedPassword, firstName, lastName },
+            updateFields,
             { new: true }
         );
 
         if (!updatedUser) {
             return res.status(404).json({
-                msg: "User not found"
+                msg: "User not found",
             });
         }
 
         return res.status(200).json({
             msg: "User updated successfully",
-            user: updatedUser
+            user: updatedUser,
         });
 
     } catch (err) {
         return res.status(500).json({
             msg: "Internal server error",
-            error: err.message
+            error: err.message,
         });
     }
+});
 
-})
 
+
+router.get('/bulk', authMiddleware, async (req, res) => {
+    try {
+        const filter = req.query.filter || "";
+        console.log("Filter received:", filter);
+
+        const users = await User.find({
+            $or: [
+                { firstName: { $regex: filter, $options: "i" } },
+                { lastName: { $regex: filter, $options: "i" } }
+            ]
+        });
+
+        console.log("Filtered users:", users);
+
+        res.json({
+            users: users.map((user) => ({
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                _id: user._id
+            }))
+        });
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 
 module.exports = router;
