@@ -3,7 +3,7 @@ const express = require("express");
 
 const mongoose = require("mongoose");
 const { authMiddleware } = require("../middleware");
-const { Account } = require("../db");
+const { Account, Transactions,User } = require("../db");
 const router = express.Router();
 
 router.get('/balance',authMiddleware,async (req,res)=>{
@@ -42,6 +42,8 @@ router.post("/transfer",authMiddleware,async (req,res)=>{
         const toAccount = await Account.findOne({
             userId: to
         }).session(session);
+
+        
     
         if(!toAccount){
             await session.abortTransaction();
@@ -49,6 +51,16 @@ router.post("/transfer",authMiddleware,async (req,res)=>{
                 msg : "Invalid account"
             })
         }
+        const transaction = await Transactions.create(
+            [{
+                amount: amount,
+                from: req.userId,
+                to: to,
+                date: new Date()
+            }],
+            { session }
+        );
+        console.log(transaction);
         await Account.updateOne({ userId: req.userId }, { $inc: { balance: -amount } }).session(session);
         await Account.updateOne({ userId: to }, { $inc: { balance: amount } }).session(session);
     
@@ -61,5 +73,32 @@ router.post("/transfer",authMiddleware,async (req,res)=>{
     }
 
 })
+router.get("/transactions", authMiddleware, async (req, res) => {
+    try {
+        // Get all transactions where the user is either the sender (from) or receiver (to)
+        const transactions = await Transactions.find({
+            $or: [
+                { from: req.userId },
+                { to: req.userId }
+            ]
+        })
+        .populate('from', 'username firstName lastName') // Populating sender details
+        .populate('to', 'username firstName lastName');   // Populating receiver details
 
+        // Split transactions into from (sent) and to (received) for clarity
+        const sentTransactions = transactions.filter(transaction => String(transaction.from._id) === String(req.userId));
+        const receivedTransactions = transactions.filter(transaction => String(transaction.to._id) === String(req.userId));
+
+        res.json({
+            sentTransactions,
+            receivedTransactions
+        });
+    } catch (err) {
+        console.error("Error fetching transactions:", err);
+        return res.status(500).json({
+            msg: "Server error while fetching transactions",
+            error: err.message
+        });
+    }
+});
 module.exports= router;
