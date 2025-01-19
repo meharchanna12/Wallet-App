@@ -22,6 +22,8 @@ export default function Signin() {
             const response = await axios.post("http://localhost:4000/api/v1/user/login", { username, password });
             console.log('Response Data:', response.data);
             localStorage.setItem("token", response.data.token);
+            localStorage.setItem("firstName",response.data.firstName);
+            localStorage.setItem("userId",response.data.userId);
             navigate("/dashboard");
         } catch (err) {
             setError("Invalid username or password.");

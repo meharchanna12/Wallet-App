@@ -5,9 +5,11 @@ import InputBox from "../components/InputBox";
 import { SubHeading } from "../components/SubHeading";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useRecoilState } from "recoil";
+import { firstNameState } from "../atoms/firstNameAtom";
 
 export const Signup = () => {
-  const [firstName, setFirstName] = useState("");
+  const [firstName, setFirstName] = useRecoilState(firstNameState);
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 export default function Users() {
     const [users, setUsers] = useState([]); // Initialize as an array
     const [filter, setFilter] = useState("");
-
+    const userId = localStorage.getItem("userId");
     useEffect(() => {
         const fetchUsers = async () => {
             try {
@@ -41,6 +41,7 @@ export default function Users() {
             <div>
                 {Array.isArray(users) && users.length > 0 ? (
                     users
+                        .filter((user) => user._id !== userId)
                         .map((user) => <User key={user._id} user={user} />)
                 ) : (
                     <div>No users found.</div>

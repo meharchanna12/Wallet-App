@@ -87,7 +87,9 @@ router.post('/login', async (req,res)=>{
         },JWT_SECRET);
         return res.status(200).json({
             msg: "Logged in successfully",
-            token : token
+            userId : currentUser._id,
+            token : token,
+            firstName : currentUser.firstName
         })
     } catch(err){
         return res.status(400).json({

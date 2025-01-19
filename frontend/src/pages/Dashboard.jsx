@@ -10,9 +10,8 @@ export default function Dashboard() {
   const [balance, setBalance] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const navigate = useNavigate();
-
-  const username = "User"// Get username from localStorage
-
+  const username = localStorage.getItem("firstName");
+  const userId = localStorage.getItem("userId");
   useEffect(() => {
       const fetchBalance = async () => {
           try {
@@ -32,6 +31,8 @@ export default function Dashboard() {
 
   const logout = () => {
       localStorage.removeItem("token");
+      localStorage.removeItem("firstName");
+      localStorage.removeItem("userId");
       navigate("/signin");
   };
 
